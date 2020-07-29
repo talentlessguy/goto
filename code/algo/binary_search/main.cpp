@@ -6,71 +6,56 @@
 
 using namespace std;
 
-struct BinVec {
+struct BinVec
+{
 	vector<int> vec;
 	int num;
 };
 
-BinVec bin_search(BinVec args) {
-	int middle = args.vec[args.vec.size() / 2];
+BinVec bin_search(BinVec args)
+{
 
-	cout << "Middle " << middle << endl; 
+	vector<int> slice;
 
-	cout << "[";
+	int n = args.vec.size();
+	int l = 0;
+	int r = n - 1;
+	int t = args.num;
 
-	for (auto el : args.vec) {
-		cout << el << ",";
+	while (l <= r)
+	{
+		int m = floor((l + r) / 2);
+
+		if (args.vec[m] < t)
+		{
+		}
 	}
 
-	cout <<  "]\n";
-
-	if (args.vec.size() <= 3 || middle == args.num) {
-	
-		vector<int> vec;
-		
-		vec.push_back(middle);
-		
-		return { vec, args.num };
-		
-	} else if (middle > args.num) {
-	
-			vector<int> slice;
-
-			for (auto i = args.vec.size() / 2 - 1; i < args.vec.size(); i++) {
-				slice.push_back(i);
-			}
-			
-			return bin_search({ slice, args.num });
-	} else if (middle < args.num) {
-			vector<int> slice;
-
-				for (auto i = args.vec.size() / 2; i < args.vec.size(); i++) {
-				slice.push_back(i);
-			}
-			
-			return bin_search({ slice, args.num });
-	}
+	return bin_search({slice, args.num});
 };
 
-int main() {
+int main()
+{
 
 	// cin >> n >> k;
 
-	vector<int> first_arr = { 1, 2, 3, 4, 5, 6, 8, 9 };
+	vector<int> first_arr = {1, 2, 3, 4, 5, 6, 8, 9, 10};
 	// vector<int> second_arr;
 
 	// for (int i = 0; i < k; i++) {
-		// int x;
-		// cin >> x;
-		// second_arr.push_back(x);
+	// int x;
+	// cin >> x;
+	// second_arr.push_back(x);
 	// }
 
-	cout << "Find 4 " << endl;
+	cout << "Find 6 " << endl;
 
-	auto s = bin_search({first_arr, 4 });
+	auto s = bin_search({first_arr, 6});
 
+	cout << endl
+			 << "Result " << s.vec[0];
 
 	// for (i = 0; i < k; i++) {
-		// 
+	//
 	// }
 };

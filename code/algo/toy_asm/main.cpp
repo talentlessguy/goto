@@ -175,16 +175,19 @@ public:
         {
             string line;
             int line_count = 0;
+
             while (getline(file, line))
             {
-                line_count++;
 
-                if (line.c_str()[0] == ':')
+                if (line[0] == ':')
                 {
-                    labels_.insert({line.c_str(), line_count});
+                    labels_.insert({line.substr(1, line.size() - 1), line_count});
                 }
-
-                source_code_.push_back(line.c_str());
+                else
+                {
+                    line_count++;
+                    source_code_.push_back(line.c_str());
+                }
             }
 
             file.close();
@@ -196,6 +199,8 @@ public:
     {
         for (long unsigned int i = 0; i < num_steps; i++)
         {
+            cout << "Pos: " << pos_ << " | " << source_code_[pos_] << endl;
+
             if (source_code_.size() < pos_)
             {
                 return false;
@@ -290,7 +295,8 @@ bool process::step(const string &line)
     // Завести переменные
     if (line.rfind("int", 0) == 0)
     {
-        mem_.push(memorycell(atoi(line.substr(4).c_str())));
+        int n = atoi(line.substr(4).c_str());
+        mem_.push(memorycell(n));
     }
     else if (line.rfind("str", 0) == 0)
     {
@@ -380,7 +386,7 @@ bool process::step(const string &line)
     {
         int a = mem_.pop();
 
-        cout << a;
+        cout << a << endl;
     }
     else if (line == "halt")
     {
@@ -433,38 +439,88 @@ bool process::step(const string &line)
     // Джампы
     else if (line.rfind("jmp", 0) == 0)
     {
-        // Step 1
-        // Fill me in
+
+        string label = (line.substr(4));
+
+        pos_ = labels_.at(label);
     }
     else if (line.rfind("jne", 0) == 0)
     {
-        // Step 1
-        // Fill me in
+        memorycell a = mem_.pop();
+
+        memorycell b = mem_.pop();
+
+        if (a != b)
+        {
+            string label = (line.substr(4));
+
+            pos_ = labels_.at(label);
+        }
     }
     else if (line.rfind("jle", 0) == 0)
     {
-        // Step 1
-        // Fill me in
+        memorycell a = mem_.pop();
+
+        memorycell b = mem_.pop();
+
+        if (a <= b)
+        {
+            string label = (line.substr(4));
+
+            pos_ = labels_.at(label);
+        }
     }
     else if (line.rfind("jge", 0) == 0)
     {
-        // Step 1pintable
-        // Fill me in
+        memorycell a = mem_.pop();
+
+        memorycell b = mem_.pop();
+
+        if (a >= b)
+        {
+            string label = (line.substr(4));
+
+            pos_ = labels_.at(label);
+        }
     }
     else if (line.rfind("jl", 0) == 0)
     {
-        // Step 1
-        // Fill me in
+        memorycell a = mem_.pop();
+
+        memorycell b = mem_.pop();
+
+        if (a < b)
+        {
+            string label = (line.substr(3));
+
+            pos_ = labels_.at(label);
+        }
     }
     else if (line.rfind("jg", 0) == 0)
     {
-        // Step 1
-        // Fill me in
+        memorycell a = mem_.pop();
+
+        memorycell b = mem_.pop();
+
+        if (a > b)
+        {
+            string label = (line.substr(3));
+
+            pos_ = labels_.at(label);
+        }
     }
     else if (line.rfind("je", 0) == 0)
     {
-        // Step 1
-        // Fill me in
+        memorycell a = mem_.pop();
+
+        memorycell b = mem_.pop();
+
+        if (a == b)
+        {
+            string label = (line.substr(3));
+
+            pos_ = labels_.at(label) - 1;
+        }
     }
 
     // Остальное
@@ -486,7 +542,7 @@ int main()
 
     process proc("code.asm", OS, pid, 8);
 
-    proc.exec(5);
+    proc.exec(14);
 
     return 0;
 }
