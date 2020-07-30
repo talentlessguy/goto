@@ -1,8 +1,11 @@
 # Toy OS
 
-## `process`
+## RoundRobin
 
-Конструктор - инициализация, чтение файла в source_code_
+Take process from queue.
 
-## `quantum`
+Execute in some ticks.
 
+If still executing, put it to the back.
+
+If finished, pop from queue.

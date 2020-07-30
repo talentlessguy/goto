@@ -6,56 +6,66 @@
 
 using namespace std;
 
-struct BinVec
+int binarySearch(int vec[], int left, int right, int x)
 {
-	vector<int> vec;
-	int num;
-};
-
-BinVec bin_search(BinVec args)
-{
-
-	vector<int> slice;
-
-	int n = args.vec.size();
-	int l = 0;
-	int r = n - 1;
-	int t = args.num;
-
-	while (l <= r)
+	if (right >= left)
 	{
-		int m = floor((l + r) / 2);
+		int mid = left + (right - left) / 2;
 
-		if (args.vec[m] < t)
+		if (vec[mid] == x)
 		{
+			return mid;
 		}
+
+		if (vec[mid] > x)
+		{
+
+			return binarySearch(vec, left, mid - 1, x);
+		}
+
+		return binarySearch(vec, mid + 1, right, x);
 	}
 
-	return bin_search({slice, args.num});
-};
+	return -1;
+}
 
 int main()
 {
+	int first_len, second_len;
+	cin >> first_len >> second_len;
 
-	// cin >> n >> k;
+	int first_arr[first_len] = {};
+	int second_arr[second_len] = {};
 
-	vector<int> first_arr = {1, 2, 3, 4, 5, 6, 8, 9, 10};
-	// vector<int> second_arr;
+	for (int i = 0; i < first_len; i++)
+	{
+		int x;
+		cin >> x;
+		first_arr[i] = x;
+	}
 
-	// for (int i = 0; i < k; i++) {
-	// int x;
-	// cin >> x;
-	// second_arr.push_back(x);
-	// }
+	for (int i = 0; i < second_len; i++)
+	{
+		int x;
+		cin >> x;
+		second_arr[i] = x;
+	}
 
-	cout << "Find 6 " << endl;
+	for (int second_el : second_arr)
+	{
+		int n = sizeof(second_arr) / sizeof(second_arr[0]);
 
-	auto s = bin_search({first_arr, 6});
+		int result = binarySearch(first_arr, 0, n - 1, second_el);
 
-	cout << endl
-			 << "Result " << s.vec[0];
+		if (result != -1)
+		{
+			cout << "YES" << endl;
+		}
+		else
+		{
+			cout << "NO" << endl;
+		}
+	}
 
-	// for (i = 0; i < k; i++) {
-	//
-	// }
-};
+	return 0;
+}

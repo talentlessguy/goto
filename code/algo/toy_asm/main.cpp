@@ -37,22 +37,6 @@ struct memorycell
     // Тип ячейки
     celltype type;
 
-    // Преобразовать в int (если тип INT)
-    operator int()
-    {
-        if (type == celltype::INT)
-            return i;
-        return -1;
-    }
-
-    // Преобразовать в string (если тип STR)
-    operator string()
-    {
-        if (type == celltype::STR)
-            return s;
-        return "";
-    }
-
     // Конструктор из int
     memorycell(int ival)
         : i(ival), s(), type(celltype::INT)
@@ -100,11 +84,67 @@ memorycell operator+(const memorycell &a, const memorycell &b)
 }
 
 // Разность (только для INT)
-memorycell operator-(const memorycell &a, const memorycell &b)
+int operator-(const memorycell &a, const memorycell &b)
 {
-    if (a.type != celltype::INT || b.type != celltype::INT)
-        return -1;
     return a.i - b.i;
+}
+
+// Модуль (только для INT)
+int operator%(const memorycell &a, const memorycell &b)
+{
+    return a.i % b.i;
+}
+
+int operator/(const memorycell &a, const memorycell &b)
+{
+    return a.i / b.i;
+}
+
+int operator*(const memorycell &a, const memorycell &b)
+{
+    return a.i * b.i;
+}
+
+bool operator==(const memorycell &a, const memorycell &b)
+{
+    if (a.type != celltype::INT && b.type != celltype::INT)
+        return a.s == a.s;
+    return a.i == b.i;
+}
+
+bool operator!=(const memorycell &a, const memorycell &b)
+{
+    if (a.type != celltype::INT && b.type != celltype::INT)
+        return a.s != a.s;
+    return a.i != b.i;
+}
+
+bool operator>(const memorycell &a, const memorycell &b)
+{
+    if (a.type != celltype::INT && b.type != celltype::INT)
+        return -1;
+    return a.i > b.i;
+}
+
+bool operator>=(const memorycell &a, const memorycell &b)
+{
+    if (a.type != celltype::INT && b.type != celltype::INT)
+        return -1;
+    return a.i >= b.i;
+}
+
+bool operator<(const memorycell &a, const memorycell &b)
+{
+    if (a.type != celltype::INT && b.type != celltype::INT)
+        return -1;
+    return a.i < b.i;
+}
+
+bool operator<=(const memorycell &a, const memorycell &b)
+{
+    if (a.type != celltype::INT && b.type != celltype::INT)
+        return -1;
+    return a.i <= b.i;
 }
 
 struct fixed_stack
@@ -127,6 +167,10 @@ struct fixed_stack
     {
         return s[last_cell--];
     }
+    memorycell top()
+    {
+        return s[last_cell];
+    }
 };
 
 class os;
@@ -145,7 +189,7 @@ private:
     fixed_stack mem_;
 
     // Данные о pid процесса и его родителя
-    const pid_t pid_;
+
     const pid_t ppid_;
 
     // Позиция в исходнике на которой остановились
@@ -164,6 +208,7 @@ private:
     map<string, memorycell *> variables;
 
 public:
+    const pid_t pid_;
     // Конструктор, инициализирующий внутренние переменные
     process(string fname, os &system, size_t pid, size_t ppid) : pid_(pid), ppid_(ppid), system_(system), pos_(0)
     {
@@ -178,7 +223,6 @@ public:
 
             while (getline(file, line))
             {
-
                 if (line[0] == ':')
                 {
                     labels_.insert({line.substr(1, line.size() - 1), line_count});
@@ -197,24 +241,37 @@ public:
     // Выполнить следующие num_steps строк исходника (false, если закончил исполнение)
     bool exec(size_t num_steps)
     {
-        for (long unsigned int i = 0; i < num_steps; i++)
+        if (source_code_.size() < num_steps)
         {
-            cout << "Pos: " << pos_ << " | " << source_code_[pos_] << endl;
+            num_steps = source_code_.size();
+        }
+
+        for (size_t i = 0; i < num_steps; i++)
+        {
+            /*  cout << "Pos: " << pos_ << " | " << source_code_[pos_] << endl; */
 
             if (source_code_.size() < pos_)
             {
                 return false;
             }
-            step(source_code_[pos_]);
+
+            bool result = step(source_code_[pos_]);
+
+            if (!result)
+            {
+                break;
+            }
+
             pos_++;
         }
+
         return true;
     }
 
-    // Отправить себе сообщение (добавить в очередь)
-    //void send(memorycell msg) {
-    // FILL ME STEP 3
-    //}
+    void send(memorycell msg)
+    {
+        msg_queue.push(msg);
+    }
 
     // Все аллоцированные этим процессом переменные
     //vector<memorycell*> get_allocated() {
@@ -247,37 +304,58 @@ private:
 
 public:
     // Конструктор класса os - инициализировать переменные
-    os(size_t quantum)
+    os(size_t quantum, pid_t pid_max) : quantum_(quantum), pid_max(pid_max)
     {
-        // Step 4
+        // Step 2
         // Fill me in
     }
 
     void kill_process(pid_t pid)
     {
-        // Step 4
-        // Fill me in
+        pid_table.erase(pid);
     }
 
     // Начать цикл RoundRobin
     void start()
     {
-        // Step 2
-        // Fill me in
+        while (!(round_robin.empty()))
+        {
+            pid_t proc_pid = round_robin.front();
+
+            if (pid_table.count(proc_pid) != 0)
+            {
+
+                auto proc = *pid_table[proc_pid];
+
+                auto res = proc.exec(quantum_);
+
+                if (res)
+                {
+                    round_robin.pop();
+                }
+                else
+                {
+                    kill_process(proc_pid);
+                }
+            }
+        }
     }
 
     // Добавить новый процесс в pid_table с исходником из аргументов, вернуть PID
-    pid_t exec(string source_name, pid_t ppid)
+    pid_t exec(string fname, pid_t ppid)
     {
-        // Step 2
-        // Fill me in
+        pid_max = pid_max + 1;
+        pid_table.emplace(ppid, new process(fname, *(this), pid_max, ppid));
+
+        round_robin.push(ppid);
+
+        return pid_max;
     }
 
     // Отправить процессу сообщение
     void send(pid_t target, memorycell val)
     {
-        // Fill me in
-        // Step 3
+        pid_table.at(target)->send(val);
     }
 
     // Получить ячейку из арены
@@ -292,15 +370,18 @@ public:
 // Реализация функции step из класса process
 bool process::step(const string &line)
 {
+
     // Завести переменные
     if (line.rfind("int", 0) == 0)
     {
         int n = atoi(line.substr(4).c_str());
-        mem_.push(memorycell(n));
+        mem_.push(n);
     }
     else if (line.rfind("str", 0) == 0)
     {
-        mem_.push(memorycell(line.c_str()));
+        string s = line.substr(4);
+
+        mem_.push(memorycell(s));
     }
 
     // Арифметика
@@ -316,21 +397,21 @@ bool process::step(const string &line)
         memorycell a = mem_.pop();
         memorycell b = mem_.pop();
 
-        mem_.push(a - b);
+        mem_.push(b - a);
     }
     else if (line == "%")
     {
         memorycell a = mem_.pop();
         memorycell b = mem_.pop();
 
-        mem_.push(a % b);
+        mem_.push(b % a);
     }
     else if (line == "/")
     {
         memorycell a = mem_.pop();
         memorycell b = mem_.pop();
 
-        mem_.push(a / b);
+        mem_.push(b / a);
     }
     else if (line == "*")
     {
@@ -349,17 +430,17 @@ bool process::step(const string &line)
     }
     else if (line == "dec")
     {
-        memorycell a = mem_.pop();
+        int a = mem_.pop().i;
 
-        memorycell b = 1;
+        int b = 1;
 
         mem_.push(a - b);
     }
     else if (line == "sqrt")
     {
-        memorycell a = mem_.pop();
+        int a = mem_.pop().i;
 
-        mem_.push(sqrt((float)a));
+        mem_.push(sqrt(a));
     }
 
     // Сервисные функции
@@ -384,7 +465,7 @@ bool process::step(const string &line)
     }
     else if (line == "print")
     {
-        int a = mem_.pop();
+        string a = mem_.pop().printable();
 
         cout << a << endl;
     }
@@ -396,23 +477,37 @@ bool process::step(const string &line)
     // Операции с другими процессами (посредством os)
     else if (line.rfind("run", 0) == 0)
     {
-        // Step 2
-        // Fill me in
+        system_.start();
     }
     else if (line == "send")
     {
-        // Step 3
-        // Fill me in
+        string val = mem_.pop().printable();
+
+        pid_t pid = mem_.pop().i;
+
+        system_.send(pid, val);
     }
     else if (line == "recv")
     {
-        // Step 3
-        // Fill me in
+
+        if (msg_queue.empty())
+        {
+            // Возвращаем false чтобы залочить процесс
+
+            return false;
+        }
+        else
+        {
+            auto msg = msg_queue.front();
+
+            msg_queue.pop();
+
+            mem_.push(msg);
+        }
     }
     else if (line == "pid")
     {
-        // Step 2
-        // Fill me in
+        mem_.push(pid_);
     }
     else if (line == "ppid")
     {
@@ -446,9 +541,9 @@ bool process::step(const string &line)
     }
     else if (line.rfind("jne", 0) == 0)
     {
-        memorycell a = mem_.pop();
+        auto a = mem_.pop();
 
-        memorycell b = mem_.pop();
+        auto b = mem_.pop();
 
         if (a != b)
         {
@@ -536,13 +631,13 @@ bool process::step(const string &line)
 
 int main()
 {
-    os OS(8);
+    os OS(5, 0);
 
-    pid_t pid;
+    OS.exec("code2.asm", 2);
 
-    process proc("code.asm", OS, pid, 8);
+    OS.exec("code.asm", 1);
 
-    proc.exec(14);
+    OS.start();
 
     return 0;
 }
