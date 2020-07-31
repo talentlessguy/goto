@@ -1,2 +1,2 @@
-recv
+str Hello World
 print

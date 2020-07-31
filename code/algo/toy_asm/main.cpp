@@ -195,7 +195,7 @@ private:
     // Позиция в исходнике на которой остановились
     size_t pos_;
 
-    // Очередь сообщений
+    // Очередь сообщенийpreact
     queue<memorycell> msg_queue;
 
     // Исполнить строку line. Если произошла блокировка, false.
@@ -227,7 +227,7 @@ public:
                 {
                     labels_.insert({line.substr(1, line.size() - 1), line_count});
                 }
-                else
+                else if (!line.empty())
                 {
                     line_count++;
                     source_code_.push_back(line.c_str());
@@ -250,7 +250,7 @@ public:
         {
             /*  cout << "Pos: " << pos_ << " | " << source_code_[pos_] << endl; */
 
-            if (source_code_.size() < pos_)
+            if (source_code_.size() <= pos_)
             {
                 return false;
             }
@@ -274,9 +274,18 @@ public:
     }
 
     // Все аллоцированные этим процессом переменные
-    //vector<memorycell*> get_allocated() {
-    // FILL ME STEP 3
-    //}
+    vector<memorycell *> get_allocated()
+    {
+
+        vector<memorycell *> addrs;
+
+        for (auto el : variables)
+        {
+            addrs.push_back(el.second);
+        }
+
+        return addrs;
+    }
 };
 
 // Класс операционной системы
@@ -297,21 +306,32 @@ private:
 
     // Step 4
     // Арена всех ячеек памяти для переменных (heap)
-    //array<memorycell, 4096> arena;
+    vector<memorycell> arena;
 
-    // Доступные ячейки памяти
-    //set<int> availible;
+    set<int> unused_variables;
 
 public:
     // Конструктор класса os - инициализировать переменные
-    os(size_t quantum, pid_t pid_max) : quantum_(quantum), pid_max(pid_max)
+    os(size_t quantum, pid_t pid_max) : quantum_(quantum), pid_max(pid_max), arena(4096)
     {
-        // Step 2
-        // Fill me in
+        for (int i = 0; i < arena.size(); i++)
+        {
+            unused_variables.insert(i);
+        }
     }
 
     void kill_process(pid_t pid)
     {
+        auto alloc = pid_table[pid]->get_allocated();
+        auto ptr = arena.data();
+
+        for (auto el : alloc)
+        {
+            auto x = el - ptr;
+
+            unused_variables.insert(x);
+        }
+
         pid_table.erase(pid);
     }
 
@@ -321,20 +341,20 @@ public:
         while (!(round_robin.empty()))
         {
             pid_t proc_pid = round_robin.front();
+            round_robin.pop();
 
             if (pid_table.count(proc_pid) != 0)
             {
 
-                auto proc = *pid_table[proc_pid];
+                bool result = pid_table[proc_pid]->exec(quantum_);
 
-                auto res = proc.exec(quantum_);
-
-                if (res)
+                if (result)
                 {
-                    round_robin.pop();
+                    round_robin.push(proc_pid);
                 }
                 else
                 {
+
                     kill_process(proc_pid);
                 }
             }
@@ -345,9 +365,10 @@ public:
     pid_t exec(string fname, pid_t ppid)
     {
         pid_max = pid_max + 1;
-        pid_table.emplace(ppid, new process(fname, *(this), pid_max, ppid));
 
-        round_robin.push(ppid);
+        pid_table.emplace(pid_max, new process(fname, *(this), pid_max, ppid));
+
+        round_robin.push(pid_max);
 
         return pid_max;
     }
@@ -361,9 +382,11 @@ public:
     // Получить ячейку из арены
     memorycell *allocate()
     {
-        // Fill me in
-        // Step 4
-        return NULL;
+        int idx = *unused_variables.begin();
+
+        auto addr = &arena.at(idx);
+
+        return addr;
     }
 };
 
@@ -477,7 +500,11 @@ bool process::step(const string &line)
     // Операции с другими процессами (посредством os)
     else if (line.rfind("run", 0) == 0)
     {
-        system_.start();
+        string s = line.substr(4);
+
+        pid_t pid = system_.exec(s, pid_);
+
+        mem_.push(pid);
     }
     else if (line == "send")
     {
@@ -498,11 +525,13 @@ bool process::step(const string &line)
         }
         else
         {
-            auto msg = msg_queue.front();
+            memorycell msg = msg_queue.front();
 
             msg_queue.pop();
 
             mem_.push(msg);
+
+            return true;
         }
     }
     else if (line == "pid")
@@ -511,25 +540,31 @@ bool process::step(const string &line)
     }
     else if (line == "ppid")
     {
-        // Step 2
-        // Fill me in
+        mem_.push(ppid_);
     }
 
     // Операции с переменными
     else if (line.rfind("new", 0) == 0)
     {
-        // Step 4
-        // Fill me in
+        auto var = system_.allocate();
+
+        string name = line.substr(4);
+
+        variables[name] = var;
     }
     else if (line.rfind("set", 0) == 0)
     {
-        // Step 4
-        // Fill me in
+
+        string name = line.substr(4);
+
+        memorycell value = mem_.pop();
+
+        *variables[name] = value;
     }
     else if (line.rfind("put", 0) == 0)
     {
-        // Step 4
-        // Fill me in
+        string name = line.substr(4);
+        mem_.push(*variables[name]);
     }
     // Джампы
     else if (line.rfind("jmp", 0) == 0)
@@ -631,11 +666,9 @@ bool process::step(const string &line)
 
 int main()
 {
-    os OS(5, 0);
-
-    OS.exec("code2.asm", 2);
-
-    OS.exec("code.asm", 1);
+    // Launch OS with 5 steps of execution
+    os OS(10, 0);
+    OS.exec("code.asm", 0);
 
     OS.start();
 
