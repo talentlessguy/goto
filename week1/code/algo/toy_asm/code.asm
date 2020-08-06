@@ -1,0 +1,1 @@
+run code2.asm

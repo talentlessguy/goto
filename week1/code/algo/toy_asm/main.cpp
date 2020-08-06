@@ -220,7 +220,6 @@ public:
         {
             string line;
             int line_count = 0;
-
             while (getline(file, line))
             {
                 if (line[0] == ':')
@@ -233,7 +232,6 @@ public:
                     source_code_.push_back(line.c_str());
                 }
             }
-
             file.close();
         }
     }
@@ -248,8 +246,6 @@ public:
 
         for (size_t i = 0; i < num_steps; i++)
         {
-            /*  cout << "Pos: " << pos_ << " | " << source_code_[pos_] << endl; */
-
             if (source_code_.size() <= pos_)
             {
                 return false;
@@ -261,7 +257,6 @@ public:
             {
                 break;
             }
-
             pos_++;
         }
 
@@ -276,7 +271,6 @@ public:
     // Все аллоцированные этим процессом переменные
     vector<memorycell *> get_allocated()
     {
-
         vector<memorycell *> addrs;
 
         for (auto el : variables)
@@ -328,7 +322,6 @@ public:
         for (auto el : alloc)
         {
             auto x = el - ptr;
-
             unused_variables.insert(x);
         }
 
@@ -354,7 +347,6 @@ public:
                 }
                 else
                 {
-
                     kill_process(proc_pid);
                 }
             }
@@ -383,7 +375,6 @@ public:
     memorycell *allocate()
     {
         int idx = *unused_variables.begin();
-
         auto addr = &arena.at(idx);
 
         return addr;
@@ -403,7 +394,6 @@ bool process::step(const string &line)
     else if (line.rfind("str", 0) == 0)
     {
         string s = line.substr(4);
-
         mem_.push(memorycell(s));
     }
 
@@ -412,43 +402,36 @@ bool process::step(const string &line)
     {
         memorycell a = mem_.pop();
         memorycell b = mem_.pop();
-
         mem_.push(a + b);
     }
     else if (line == "-")
     {
         memorycell a = mem_.pop();
         memorycell b = mem_.pop();
-
         mem_.push(b - a);
     }
     else if (line == "%")
     {
         memorycell a = mem_.pop();
         memorycell b = mem_.pop();
-
         mem_.push(b % a);
     }
     else if (line == "/")
     {
         memorycell a = mem_.pop();
         memorycell b = mem_.pop();
-
         mem_.push(b / a);
     }
     else if (line == "*")
     {
         memorycell a = mem_.pop();
         memorycell b = mem_.pop();
-
         mem_.push(a * b);
     }
     else if (line == "inc")
     {
         memorycell a = mem_.pop();
-
         memorycell b = 1;
-
         mem_.push(a + b);
     }
     else if (line == "dec")
